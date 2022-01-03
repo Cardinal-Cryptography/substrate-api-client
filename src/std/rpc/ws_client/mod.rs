@@ -334,7 +334,14 @@ fn parse_status(msg: &str) -> RpcResult<(XtStatus, Option<String>)> {
 /// Todo: this is the code that was used in `parse_status` Don't we want to just print the
 /// error as is instead of introducing our custom format here?
 fn into_extrinsic_err(resp_with_err: &Value) -> RpcClientError {
-    let err_obj = resp_with_err["error"].as_object().unwrap();
+    let err_obj = match resp_with_err["error"].as_object() {
+        Some(e) => e,
+        None => {
+            return RpcClientError::Extrinsic(
+                "unknown error; received response: ".to_string() + &resp_with_err.to_string(),
+            )
+        }
+    };
 
     let error = err_obj
         .get("message")
