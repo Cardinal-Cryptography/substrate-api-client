@@ -56,7 +56,7 @@ fn main() {
                         Event::Balances(be) => {
                             println!(">>>>>>>>>> balances event: {:?}", be);
                             match &be {
-                                balances::Event::Transfer {from, to, amount} => {
+                                balances::Event::Transfer { from, to, amount } => {
                                     println!("Transactor: {:?}", from);
                                     println!("Destination: {:?}", to);
                                     println!("Value: {:?}", amount);

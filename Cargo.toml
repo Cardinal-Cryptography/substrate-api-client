@@ -7,6 +7,7 @@ edition = "2021"
 [workspace]
 members = [
 	".",
+	"compose-macros",
 	"client-keystore",
 	"node-api",
 	"test-no-std",
@@ -35,11 +36,12 @@ sp-runtime = { default-features = false, git = "https://github.com/paritytech/su
 support = { default-features = false, git = "https://github.com/paritytech/substrate.git", package = "frame-support", branch = "polkadot-v0.9.13" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 # new parity repository
-metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["v13"] }
+metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["v14"] }
 # need to add this for the app_crypto macro
 sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", features = ["full_crypto"] }
 
 # local deps
+ac-compose-macros = { path = "compose-macros", default-features = false }
 ac-node-api = { path = "node-api", optional = true }
 ac-primitives = { path = "primitives", default-features = false }
 
@@ -72,6 +74,7 @@ std = [
 	"sp-rpc",
 	"transaction-payment/std",
 	# local deps
+	"ac-compose-macros/std",
 	"ac-node-api",
 	"ac-primitives/std",
 ]
@@ -102,6 +105,7 @@ path = "src/examples/example_event_callback.rs"
 name = "example_generic_extrinsic"
 path = "src/examples/example_generic_extrinsic.rs"
 
+# Todo: #179
 [[example]]
 name = "example_print_metadata"
 path = "src/examples/example_print_metadata.rs"
@@ -121,10 +125,6 @@ path = "src/examples/example_benchmark_bulk_xt.rs"
 [[example]]
 name = "example_sudo"
 path = "src/examples/example_sudo.rs"
-
-[[example]]
-name = "example_custom_client"
-path = "src/examples/example_custom_client.rs"
 
 [[example]]
 name = "example_get_existential_deposit"
