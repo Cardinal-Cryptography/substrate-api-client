@@ -1,7 +1,13 @@
+pub use crate::error::{ApiResult, Error as ApiClientError};
+pub use crate::std::rpc::XtStatus;
+pub use crate::utils::FromHexString;
+pub use ac_node_api::metadata::{InvalidMetadataError, Metadata, MetadataError};
+use ac_primitives::{AccountData, AccountInfo, Balance};
 pub use metadata::RuntimeMetadataPrefixed;
 pub use serde_json::Value;
 pub use sp_core::crypto::Pair;
 pub use sp_core::storage::StorageKey;
+use sp_core::H256 as Hash;
 pub use sp_runtime::traits::{Block, Header};
 pub use sp_runtime::{
     generic::SignedBlock, traits::IdentifyAccount, AccountId32 as AccountId, MultiSignature,
@@ -11,12 +17,7 @@ pub use sp_std::prelude::*;
 pub use sp_version::RuntimeVersion;
 pub use transaction_payment::FeeDetails;
 
-pub use crate::std::rpc::XtStatus;
-pub use crate::utils::FromHexString;
-pub use ac_node_api::metadata::{Metadata, MetadataError};
-use ac_primitives::{AccountData, AccountInfo};
-use sp_core::H256 as Hash;
-
+pub mod error;
 pub mod rpc;
 
 use std::convert::{TryFrom, TryInto};
@@ -28,9 +29,6 @@ use sp_rpc::number::NumberOrHex;
 use transaction_payment::{InclusionFee, RuntimeDispatchInfo};
 
 use crate::rpc::json_req;
-use crate::{extrinsic, Balance};
-
-pub type ApiResult<T> = Result<T, ApiClientError>;
 
 pub trait RpcClient {
     /// Sends a RPC request that returns a String
@@ -40,6 +38,64 @@ pub trait RpcClient {
     fn send_extrinsic(&self, xthex_prefixed: String, exit_on: XtStatus) -> ApiResult<Option<Hash>>;
 }
 
+/// Api to talk with substrate-nodes
+///
+/// It is generic over the `RpcClient` trait, so you can use any rpc-backend you like.
+///
+/// # Custom Client Example
+///
+/// ```no_run
+/// use substrate_api_client::rpc::json_req::author_submit_extrinsic;
+/// use substrate_api_client::{
+///     Api, ApiClientError, ApiResult, FromHexString, Hash, RpcClient, Value, XtStatus,
+/// };
+/// struct MyClient {
+///     // pick any request crate, such as ureq::Agent
+///     _inner: (),
+/// }
+///
+/// impl MyClient {
+///     pub fn new() -> Self {
+///         Self {
+///             // ureq::agent()
+///             _inner: (),
+///         }
+///     }
+///
+///     pub fn send_json<R>(
+///         &self,
+///         _path: String,
+///         _json: Value,
+///     ) -> Result<R, Box<dyn std::error::Error>> {
+///         // you can figure this out...self.inner...send_json...
+///         todo!()
+///     }
+/// }
+///
+/// impl RpcClient for MyClient {
+///     fn get_request(&self, jsonreq: serde_json::Value) -> ApiResult<String> {
+///         self.send_json::<Value>("".into(), jsonreq)
+///             .map(|v| v.to_string())
+///             .map_err(|err| ApiClientError::RpcClient(err.to_string()))
+///     }
+///
+///     fn send_extrinsic(
+///         &self,
+///         xthex_prefixed: String,
+///         _exit_on: XtStatus,
+///     ) -> ApiResult<Option<Hash>> {
+///         let jsonreq = author_submit_extrinsic(&xthex_prefixed);
+///         let res: String = self
+///             .send_json("".into(), jsonreq)
+///             .map_err(|err| ApiClientError::RpcClient(err.to_string()))?;
+///         Ok(Some(Hash::from_hex(res)?))
+///     }
+/// }
+///
+/// let client = MyClient::new();
+/// let _api = Api::<(), _>::new(client);
+///
+/// ```
 #[derive(Clone)]
 pub struct Api<P, Client>
 where
@@ -98,6 +154,7 @@ where
         })
     }
 
+    #[must_use]
     pub fn set_signer(mut self, signer: P) -> Self {
         self.signer = Some(signer);
         self
@@ -160,8 +217,8 @@ where
         let storagekey: sp_core::storage::StorageKey = self
             .metadata
             .storage_map_key::<AccountId, AccountInfo>("System", "Account", address.clone())?;
-        info!("storagekey {:?}", storagekey);
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+
+        info!("storage key is: 0x{}", hex::encode(&storagekey));
         self.get_storage_by_key_hash(storagekey, None)
     }
 
@@ -189,11 +246,26 @@ where
         }
     }
 
+    pub fn get_block_hash(&self, number: Option<u32>) -> ApiResult<Option<Hash>> {
+        let h = self.get_request(json_req::chain_get_block_hash(number))?;
+        match h {
+            Some(hash) => Ok(Some(Hash::from_hex(hash)?)),
+            None => Ok(None),
+        }
+    }
+
     pub fn get_block<B>(&self, hash: Option<Hash>) -> ApiResult<Option<B>>
     where
         B: Block + DeserializeOwned,
     {
         Self::get_signed_block(self, hash).map(|sb_opt| sb_opt.map(|sb| sb.block))
+    }
+
+    pub fn get_block_by_num<B>(&self, number: Option<u32>) -> ApiResult<Option<B>>
+    where
+        B: Block + DeserializeOwned,
+    {
+        Self::get_signed_block_by_num(self, number).map(|sb_opt| sb_opt.map(|sb| sb.block))
     }
 
     /// A signed block is a block with Justification ,i.e., a Grandpa finality proof.
@@ -211,6 +283,17 @@ where
         }
     }
 
+    pub fn get_signed_block_by_num<B>(
+        &self,
+        number: Option<u32>,
+    ) -> ApiResult<Option<SignedBlock<B>>>
+    where
+        B: Block + DeserializeOwned,
+    {
+        self.get_block_hash(number)
+            .map(|h| self.get_signed_block(h))?
+    }
+
     pub fn get_request(&self, jsonreq: Value) -> ApiResult<Option<String>> {
         Self::_get_request(&self.client, jsonreq)
     }
@@ -224,7 +307,7 @@ where
         let storagekey = self
             .metadata
             .storage_value_key(storage_prefix, storage_key_name)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        info!("storage key is: 0x{}", hex::encode(&storagekey));
         self.get_storage_by_key_hash(storagekey, at_block)
     }
 
@@ -238,7 +321,7 @@ where
         let storagekey =
             self.metadata
                 .storage_map_key::<K, V>(storage_prefix, storage_key_name, map_key)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        info!("storage key is: 0x{}", hex::encode(&storagekey));
         self.get_storage_by_key_hash(storagekey, at_block)
     }
 
@@ -266,7 +349,7 @@ where
             first,
             second,
         )?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        info!("storage key is: 0x{}", hex::encode(&storagekey));
         self.get_storage_by_key_hash(storagekey, at_block)
     }
 
@@ -305,7 +388,7 @@ where
         let storagekey = self
             .metadata
             .storage_value_key(storage_prefix, storage_key_name)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        info!("storage key is: 0x{}", hex::encode(&storagekey));
         self.get_storage_proof_by_keys(vec![storagekey], at_block)
     }
 
@@ -319,7 +402,7 @@ where
         let storagekey =
             self.metadata
                 .storage_map_key::<K, V>(storage_prefix, storage_key_name, map_key)?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        info!("storage key is: 0x{}", hex::encode(&storagekey));
         self.get_storage_proof_by_keys(vec![storagekey], at_block)
     }
 
@@ -337,7 +420,7 @@ where
             first,
             second,
         )?;
-        info!("storage key is: 0x{}", hex::encode(storagekey.0.clone()));
+        info!("storage key is: 0x{}", hex::encode(&storagekey));
         self.get_storage_proof_by_keys(vec![storagekey], at_block)
     }
 
@@ -400,10 +483,23 @@ where
         }
     }
 
+    pub fn get_constant<C: Decode>(
+        &self,
+        pallet: &'static str,
+        constant: &'static str,
+    ) -> ApiResult<C> {
+        let c = self
+            .metadata
+            .pallet(pallet)?
+            .constants
+            .get(constant)
+            .ok_or(MetadataError::ConstantNotFound(constant))?;
+
+        Ok(Decode::decode(&mut c.value.as_slice())?)
+    }
+
     pub fn get_existential_deposit(&self) -> ApiResult<Balance> {
-        let module = self.metadata.module_with_constants_by_name("Balances")?;
-        let constant_metadata = module.constant_by_name("ExistentialDeposit")?;
-        Decode::decode(&mut constant_metadata.get_value().as_slice()).map_err(|e| e.into())
+        self.get_constant("Balances", "ExistentialDeposit")
     }
 
     #[cfg(feature = "ws-client")]
@@ -455,39 +551,4 @@ fn inclusion_fee_with_balance(
             .try_into()
             .map_err(|_| ApiClientError::TryFromIntError)?,
     })
-}
-
-#[derive(Debug, thiserror::Error)]
-
-pub enum ApiClientError {
-    #[error("Fetching genesis hash failed. Are you connected to the correct endpoint?")]
-    Genesis,
-    #[error("Fetching runtime version failed. Are you connected to the correct endpoint?")]
-    RuntimeVersion,
-    #[error("Fetching Metadata failed. Are you connected to the correct endpoint?")]
-    MetadataFetch,
-    #[error("Operation needs a signer to be set in the api")]
-    NoSigner,
-    #[cfg(feature = "ws-client")]
-    #[error("WebSocket Error: {0}")]
-    WebSocket(#[from] ws::Error),
-    #[error("RpcClient error: {0}")]
-    RpcClient(String),
-    #[error("ChannelReceiveError, sender is disconnected: {0}")]
-    Disconnected(#[from] sp_std::sync::mpsc::RecvError),
-    #[error("Metadata Error: {0}")]
-    Metadata(#[from] MetadataError),
-    #[cfg(feature = "ws-client")]
-    #[error("Events Error: {0}")]
-    Events(#[from] rpc::EventsError),
-    #[error("Error decoding storage value: {0}")]
-    StorageValueDecode(#[from] extrinsic::codec::Error),
-    #[error("Received invalid hex string: {0}")]
-    InvalidHexString(#[from] hex::FromHexError),
-    #[error("Error deserializing with serde: {0}")]
-    Deserializing(#[from] serde_json::Error),
-    #[error("UnsupportedXtStatus Error: Can only wait for finalized, in block, broadcast and ready. Waited for: {0:?}")]
-    UnsupportedXtStatus(XtStatus),
-    #[error("Error converting NumberOrHex to Balance")]
-    TryFromIntError,
 }
