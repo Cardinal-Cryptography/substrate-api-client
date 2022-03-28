@@ -56,7 +56,11 @@ fn main() {
                         Event::Balances(be) => {
                             println!(">>>>>>>>>> balances event: {:?}", be);
                             match &be {
+<<<<<<< HEAD:src/examples/example_event_callback.rs
                                 balances::Event::Transfer {from, to, amount} => {
+=======
+                                balances::Event::Transfer { from, to, amount } => {
+>>>>>>> b26ad4db237c11c1aff3241c04db9b1beb48a081:examples/example_event_callback.rs
                                     println!("Transactor: {:?}", from);
                                     println!("Destination: {:?}", to);
                                     println!("Value: {:?}", amount);
@@ -77,7 +81,7 @@ fn main() {
 }
 
 pub fn get_node_url_from_cli() -> String {
-    let yml = load_yaml!("../../src/examples/cli.yml");
+    let yml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yml).get_matches();
 
     let node_ip = matches.value_of("node-server").unwrap_or("ws://127.0.0.1");

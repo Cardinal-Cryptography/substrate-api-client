@@ -13,15 +13,16 @@
     limitations under the License.
 */
 
-//! This examples floates the node with a series of transactions
+//! This examples floats the node with a series of transactions.
+
 // run this against test node with
 // > substrate-test-node --dev --execution native --ws-port 9979 -ltxpool=debug
 
 use clap::{load_yaml, App};
 
-use keyring::AccountKeyring;
 use node_template_runtime::{BalancesCall, Call};
 use sp_core::crypto::Pair;
+use sp_keyring::AccountKeyring;
 
 use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{compose_extrinsic_offline, Api, UncheckedExtrinsicV4, XtStatus};
@@ -52,7 +53,11 @@ fn main() {
             api.clone().signer.unwrap(),
             Call::Balances(BalancesCall::transfer {
                 dest: GenericAddress::Id(to.clone()),
+<<<<<<< HEAD:src/examples/example_benchmark_bulk_xt.rs
                 value: 1_000_000,
+=======
+                value: 1_000_000
+>>>>>>> b26ad4db237c11c1aff3241c04db9b1beb48a081:examples/example_benchmark_bulk_xt.rs
             }),
             nonce,
             Era::Immortal,
@@ -72,7 +77,7 @@ fn main() {
 }
 
 pub fn get_node_url_from_cli() -> String {
-    let yml = load_yaml!("../../src/examples/cli.yml");
+    let yml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yml).get_matches();
 
     let node_ip = matches.value_of("node-server").unwrap_or("ws://127.0.0.1");

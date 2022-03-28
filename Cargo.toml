@@ -7,6 +7,7 @@ edition = "2021"
 [workspace]
 members = [
 	".",
+	"compose-macros",
 	"client-keystore",
 	"node-api",
 	"test-no-std",
@@ -15,39 +16,40 @@ members = [
 
 [dependencies]
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
-log = { version = "0.4", optional = true }
-primitive-types = { version = "0.10.1", optional = true, features = ["codec"] }
-serde = { version = "1.0", optional = true, features = ["derive"] }
-serde_json = { version = "1.0", optional = true }
-thiserror = { version = "1.0", optional = true }
-ws = { version = "0.9.1", optional = true, features = ["ssl"] }
-codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive']}
+log = { version = "0.4.14", optional = true }
+metadata = { version = "15.0.0", default-features = false, package = "frame-metadata", features = ["v14"] }
+primitive-types = { version = "0.11.1", optional = true, features = ["codec"] }
+serde = { version = "1.0.136", optional = true, features = ["derive"] }
+serde_json = { version = "1.0.79", optional = true }
+thiserror = { version = "1.0.30", optional = true }
+ws = { version = "0.9.2", optional = true, features = ["ssl"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ['derive'] }
 
 # Substrate dependencies
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", features = ["full_crypto"] }
-sp-version = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "sp-version", optional = true }
-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "pallet-balances", optional = true }
-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "pallet-staking", optional = true }
-system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "frame-system", optional = true }
-transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "pallet-transaction-payment", optional = true }
-sp-rpc = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", optional = true }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", package = "frame-support", branch = "polkadot-v0.9.13" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
-# new parity repository
-metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["v13"] }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", features = ["full_crypto"] }
+sp-version = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", package = "sp-version", optional = true }
+balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", package = "pallet-balances", optional = true }
+staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", package = "pallet-staking", optional = true }
+system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", package = "frame-system", optional = true }
+transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", package = "pallet-transaction-payment", optional = true }
+sp-rpc = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", optional = true }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+support = { default-features = false, git = "https://github.com/paritytech/substrate.git", package = "frame-support", branch = "polkadot-v0.9.18" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 # need to add this for the app_crypto macro
-sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", features = ["full_crypto"] }
+sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", features = ["full_crypto"] }
 
 # local deps
+ac-compose-macros = { path = "compose-macros", default-features = false }
 ac-node-api = { path = "node-api", optional = true }
 ac-primitives = { path = "primitives", default-features = false }
 
 [dev-dependencies]
 env_logger = "0.9"
-node-template-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "sp-keyring" }
+node-template-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", package = "sp-keyring" }
 clap = { version = "2.33", features = ["yaml"] }
+wabt = "0.10.0"
 
 
 [features]
@@ -72,79 +74,10 @@ std = [
 	"sp-rpc",
 	"transaction-payment/std",
 	# local deps
+	"ac-compose-macros/std",
 	"ac-node-api",
 	"ac-primitives/std",
 ]
 ws-client = ["ws"]
 staking-xt = ["std", "staking"]
 
-[[example]]
-name = "example_get_storage"
-path = "src/examples/example_get_storage.rs"
-
-[[example]]
-name = "example_get_blocks"
-path = "src/examples/example_get_blocks.rs"
-
-[[example]]
-name = "example_transfer"
-path = "src/examples/example_transfer.rs"
-
-[[example]]
-name = "example_event_error_details"
-path = "src/examples/example_event_error_details.rs"
-
-[[example]]
-name = "example_event_callback"
-path = "src/examples/example_event_callback.rs"
-
-[[example]]
-name = "example_generic_extrinsic"
-path = "src/examples/example_generic_extrinsic.rs"
-
-[[example]]
-name = "example_print_metadata"
-path = "src/examples/example_print_metadata.rs"
-
-[[example]]
-name = "example_compose_extrinsic_offline"
-path = "src/examples/example_compose_extrinsic_offline.rs"
-
-[[example]]
-name = "example_generic_event_callback"
-path = "src/examples/example_generic_event_callback.rs"
-
-[[example]]
-name = "example_benchmark_bulk_xt"
-path = "src/examples/example_benchmark_bulk_xt.rs"
-
-[[example]]
-name = "example_sudo"
-path = "src/examples/example_sudo.rs"
-
-[[example]]
-name = "example_custom_client"
-path = "src/examples/example_custom_client.rs"
-
-[[example]]
-name = "example_get_existential_deposit"
-path = "src/examples/example_get_existential_deposit.rs"
-
-# DEPRECATED. might work but too much work to maintain, sorry
-
-# needed for contract example
-#[dev-dependencies]
-#wabt = "0.10.0"
-
-#[dev-dependencies.contracts]
-#git = "https://github.com/paritytech/substrate.git"
-#branch = "master"
-#package = "pallet-contracts"
-
-#[[example]]
-#name = "example_contract"
-#path = "src/examples/example_contract.rs"
-
-#[[example]]
-#name = "example_custom_storage_struct"
-#path = "src/examples/example_custom_storage_struct.rs"

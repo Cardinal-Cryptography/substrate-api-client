@@ -39,6 +39,11 @@ fn main() {
 
     let head = api.get_finalized_head().unwrap().unwrap();
 
+    println!(
+        "Genesis block: \n {:?} \n",
+        api.get_block_by_num::<Block>(Some(0)).unwrap()
+    );
+
     println!("Finalized Head:\n {} \n", head);
 
     let h: Header = api.get_header(Some(head)).unwrap().unwrap();
@@ -71,7 +76,7 @@ fn main() {
 }
 
 pub fn get_node_url_from_cli() -> String {
-    let yml = load_yaml!("../../src/examples/cli.yml");
+    let yml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yml).get_matches();
 
     let node_ip = matches.value_of("node-server").unwrap_or("ws://127.0.0.1");

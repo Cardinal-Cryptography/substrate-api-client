@@ -17,12 +17,12 @@
 //! module, whereas the desired module and call are supplied as a string.
 
 use clap::{load_yaml, App};
-use codec::Compact;
-use keyring::AccountKeyring;
 use sp_core::crypto::Pair;
+use sp_keyring::AccountKeyring;
+
 use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{
-    compose_call, compose_extrinsic, Api, GenericAddress, UncheckedExtrinsicV4, XtStatus,
+    compose_extrinsic, Api, GenericAddress, UncheckedExtrinsicV4, XtStatus,
 };
 
 fn main() {
@@ -30,27 +30,27 @@ fn main() {
     let url = get_node_url_from_cli();
 
     // initialize api and set the signer (sender) that is used to sign the extrinsics
-    let sudoer = AccountKeyring::Alice.pair();
+    let from = AccountKeyring::Alice.pair();
     let client = WsRpcClient::new(&url);
-    let api = Api::new(client).map(|api| api.set_signer(sudoer)).unwrap();
+    let api = Api::new(client).map(|api| api.set_signer(from)).unwrap();
 
-    // set the recipient of newly issued funds
+    // set the recipient
     let to = AccountKeyring::Bob.to_account_id();
 
-    // this call can only be called by sudo
+    // call Balances::transfer
+    // the names are given as strings
     #[allow(clippy::redundant_clone)]
-    let call = compose_call!(
-        api.metadata.clone(),
+    let xt: UncheckedExtrinsicV4<_> = compose_extrinsic!(
+        api.clone(),
         "Balances",
-        "set_balance",
+        "transfer",
         GenericAddress::Id(to),
-        Compact(42_u128),
         Compact(42_u128)
     );
-    #[allow(clippy::redundant_clone)]
-    let xt: UncheckedExtrinsicV4<_> = compose_extrinsic!(api.clone(), "Sudo", "sudo", call);
 
-    // send and watch extrinsic until finalized
+    println!("[+] Composed Extrinsic:\n {:?}\n", xt);
+
+    // send and watch extrinsic until InBlock
     let tx_hash = api
         .send_extrinsic(xt.hex_encode(), XtStatus::InBlock)
         .unwrap();
@@ -58,7 +58,7 @@ fn main() {
 }
 
 pub fn get_node_url_from_cli() -> String {
-    let yml = load_yaml!("../../src/examples/cli.yml");
+    let yml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yml).get_matches();
 
     let node_ip = matches.value_of("node-server").unwrap_or("ws://127.0.0.1");

@@ -16,7 +16,7 @@
 ///! Very simple example that shows how to get some simple storage values.
 use clap::{load_yaml, App};
 
-use keyring::AccountKeyring;
+use sp_keyring::AccountKeyring;
 use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::AccountInfo;
 use substrate_api_client::Api;
@@ -60,7 +60,7 @@ fn main() {
 }
 
 pub fn get_node_url_from_cli() -> String {
-    let yml = load_yaml!("../../src/examples/cli.yml");
+    let yml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yml).get_matches();
 
     let node_ip = matches.value_of("node-server").unwrap_or("ws://127.0.0.1");

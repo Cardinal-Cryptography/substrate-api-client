@@ -13,24 +13,19 @@
     limitations under the License.
 */
 
-///! Very simple example that shows how to subscribe to events generically
-/// implying no runtime needs to be imported
-use std::sync::mpsc::channel;
+///! Very simple example that shows how to pretty print the metadata. Has proven to be a helpful
+///! debugging tool.
 
-use clap::{load_yaml, App};
-use codec::Decode;
+#[macro_use]
+extern crate clap;
+
+use clap::App;
+
 use sp_core::sr25519;
-use sp_runtime::AccountId32 as AccountId;
-use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::Api;
 
-// Look at the how the transfer event looks like in in the metadata
-#[derive(Decode)]
-struct TransferEventArgs {
-    from: AccountId,
-    to: AccountId,
-    value: u128,
-}
+use std::convert::TryFrom;
+use substrate_api_client::rpc::WsRpcClient;
+use substrate_api_client::{Api, Metadata};
 
 fn main() {
     env_logger::init();
@@ -39,26 +34,30 @@ fn main() {
     let client = WsRpcClient::new(&url);
     let api = Api::<sr25519::Pair, _>::new(client).unwrap();
 
-    println!("Subscribe to events");
-    let (events_in, events_out) = channel();
+    let meta = Metadata::try_from(api.get_metadata().unwrap()).unwrap();
 
-    api.subscribe_events(events_in).unwrap();
-    let args: TransferEventArgs = api
-        .wait_for_event("Balances", "Transfer", None, &events_out)
-        .unwrap();
+    meta.print_overview();
+    meta.print_pallets();
+    meta.print_pallets_with_calls();
+    meta.print_pallets_with_events();
+    meta.print_pallets_with_errors();
+    meta.print_pallets_with_constants();
 
-    println!("Transactor: {:?}", args.from);
-    println!("Destination: {:?}", args.to);
-    println!("Value: {:?}", args.value);
+    // print full substrate metadata json formatted
+    println!(
+        "{}",
+        Metadata::pretty_format(&api.get_metadata().unwrap())
+            .unwrap_or_else(|| "pretty format failed".to_string())
+    )
 }
 
 pub fn get_node_url_from_cli() -> String {
-    let yml = load_yaml!("../../src/examples/cli.yml");
+    let yml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yml).get_matches();
 
     let node_ip = matches.value_of("node-server").unwrap_or("ws://127.0.0.1");
     let node_port = matches.value_of("node-port").unwrap_or("9944");
     let url = format!("{}:{}", node_ip, node_port);
-    println!("Interacting with node on {}", url);
+    println!("Interacting with node on {}\n", url);
     url
 }

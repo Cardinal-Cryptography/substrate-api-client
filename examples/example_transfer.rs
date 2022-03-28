@@ -15,8 +15,8 @@
 
 ///! Very simple example that shows how to use a predefined extrinsic from the extrinsic module
 use clap::{load_yaml, App};
-use keyring::AccountKeyring;
 use sp_core::crypto::Pair;
+use sp_keyring::AccountKeyring;
 use sp_runtime::MultiAddress;
 
 use substrate_api_client::rpc::WsRpcClient;
@@ -62,7 +62,7 @@ fn main() {
 }
 
 pub fn get_node_url_from_cli() -> String {
-    let yml = load_yaml!("../../src/examples/cli.yml");
+    let yml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yml).get_matches();
 
     let node_ip = matches.value_of("node-server").unwrap_or("ws://127.0.0.1");
