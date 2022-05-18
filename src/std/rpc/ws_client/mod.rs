@@ -22,6 +22,7 @@ use log::{debug, error, info, warn};
 use serde_json::Value;
 use sp_core::Pair;
 use sp_runtime::MultiSignature;
+use support::traits::Len;
 use ws::{CloseCode, Error, Handler, Handshake, Message, Result as WsResult, Sender};
 
 use crate::std::rpc::RpcClientError;
@@ -139,11 +140,21 @@ where
     }
 }
 
+const MAX_MESSAGE_LEN: usize = 1024;
+
+fn format_message(msg: &Message) -> String {
+    match msg.as_text() {
+        Ok(text) if text.len() <= MAX_MESSAGE_LEN => text.to_string(),
+        Ok(text) => format!("{}...", &text[..MAX_MESSAGE_LEN]),
+        _ => format!("Binary Data<length={}>", msg.len()),
+    }
+}
+
 pub fn on_get_request_msg(msg: Message, out: Sender, result: ThreadOut<String>) -> WsResult<()> {
     out.close(CloseCode::Normal)
         .unwrap_or_else(|_| warn!("Could not close Websocket normally"));
 
-    info!("Got get_request_msg {}", msg);
+    info!("Got get_request_msg {}", format_message(&msg));
     let result_str = serde_json::from_str(msg.as_text()?)
         .map(|v: serde_json::Value| v["result"].to_string())
         .map_err(|e| Box::new(RpcClientError::Serde(e)))?;
@@ -154,7 +165,7 @@ pub fn on_get_request_msg(msg: Message, out: Sender, result: ThreadOut<String>) 
 }
 
 pub fn on_subscription_msg(msg: Message, out: Sender, result: ThreadOut<String>) -> WsResult<()> {
-    info!("got on_subscription_msg {}", msg);
+    info!("got on_subscription_msg {}", format_message(&msg));
     let value: serde_json::Value =
         serde_json::from_str(msg.as_text()?).map_err(|e| Box::new(RpcClientError::Serde(e)))?;
 
@@ -198,8 +209,8 @@ pub fn on_extrinsic_msg_until_finalized(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::Future, _)) => {
@@ -219,8 +230,8 @@ pub fn on_extrinsic_msg_until_in_block(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::InBlock, val)) => end_process(out, result, val),
@@ -238,8 +249,8 @@ pub fn on_extrinsic_msg_until_broadcast(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::Broadcast, _)) => end_process(out, result, None),
@@ -257,8 +268,8 @@ pub fn on_extrinsic_msg_until_ready(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::Ready, _)) => end_process(out, result, None),
@@ -276,8 +287,8 @@ pub fn on_extrinsic_msg_submit_only(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match result_from_json_response(retstr) {
         Ok(val) => end_process(out, result, Some(val)),
         Err(e) => {
