@@ -23,6 +23,7 @@ use log::{debug, error, info, warn};
 use serde_json::Value;
 use sp_core::Pair;
 use sp_runtime::MultiSignature;
+use support::traits::Len;
 use ws::{CloseCode, Error, Handler, Handshake, Message, Result as WsResult, Sender};
 
 use crate::std::rpc::RpcClientError;
@@ -150,10 +151,7 @@ fn format_message(msg: &Message) -> String {
     match (msg.as_text(), msg) {
         (Ok(text), _) if text.len() <= MAX_MESSAGE_LEN => text.to_string(),
         (Ok(text), _)  => format!("{}...", &text[..MAX_MESSAGE_LEN]),
-        (_, Message::Binary(bin)) if bin.len() <= MAX_MESSAGE_LEN => format!("Binary content: {:?}", bin),
-        (_, Message::Binary(bin)) => {
-            format!("Binary content: {:?}...", &bin[..MAX_MESSAGE_LEN])
-        }
+        (_, Message::Binary(bin)) => format!("Binary Data<length={}>", bin.len()),
         _ => unreachable!("Only `Message::Binary` can fail `.as_text()`.")
     }
 }
@@ -164,7 +162,7 @@ pub fn on_get_request_msg(msg: Message, out: Sender, result: ThreadOut<String>) 
 
     info!("Got get_request_msg {}", format_message(&msg));
     let result_str = serde_json::from_str(msg.as_text()?)
-        .map(|v: Value| v["result"].to_string())
+        .map(|v: serde_json::Value| v["result"].to_string())
         .map_err(|e| Box::new(RpcClientError::Serde(e)))?;
 
     result
@@ -174,7 +172,7 @@ pub fn on_get_request_msg(msg: Message, out: Sender, result: ThreadOut<String>) 
 
 pub fn on_subscription_msg(msg: Message, out: Sender, result: ThreadOut<String>) -> WsResult<()> {
     info!("got on_subscription_msg {}", format_message(&msg));
-    let value: Value =
+    let value: serde_json::Value =
         serde_json::from_str(msg.as_text()?).map_err(|e| Box::new(RpcClientError::Serde(e)))?;
 
     match value["id"].as_str() {
@@ -320,7 +318,7 @@ fn end_process(out: Sender, result: ThreadOut<String>, value: Option<String>) ->
 }
 
 fn parse_status(msg: &str) -> RpcResult<(XtStatus, Option<String>)> {
-    let value: Value = serde_json::from_str(msg)?;
+    let value: serde_json::Value = serde_json::from_str(msg)?;
 
     if value["error"].as_object().is_some() {
         return Err(into_extrinsic_err(&value));
@@ -379,7 +377,7 @@ fn into_extrinsic_err(resp_with_err: &Value) -> RpcClientError {
 }
 
 fn result_from_json_response(resp: &str) -> RpcResult<String> {
-    let value: Value = serde_json::from_str(resp)?;
+    let value: serde_json::Value = serde_json::from_str(resp)?;
 
     let resp = value["result"]
         .as_str()
