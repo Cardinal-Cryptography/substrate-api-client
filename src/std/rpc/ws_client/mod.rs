@@ -148,11 +148,10 @@ where
 const MAX_MESSAGE_LEN: usize = 1024;
 
 fn format_message(msg: &Message) -> String {
-    match (msg.as_text(), msg) {
-        (Ok(text), _) if text.len() <= MAX_MESSAGE_LEN => text.to_string(),
-        (Ok(text), _)  => format!("{}...", &text[..MAX_MESSAGE_LEN]),
-        (_, Message::Binary(bin)) => format!("Binary Data<length={}>", bin.len()),
-        _ => unreachable!("Only `Message::Binary` can fail `.as_text()`.")
+    match msg.as_text() {
+        Ok(text) if text.len() <= MAX_MESSAGE_LEN => text.to_string(),
+        Ok(text) => format!("{}...", &text[..MAX_MESSAGE_LEN]),
+        _ => format!("Binary Data<length={}>", msg.len()),
     }
 }
 
