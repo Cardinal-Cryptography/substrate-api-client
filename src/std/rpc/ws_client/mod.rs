@@ -139,13 +139,27 @@ where
     }
 }
 
+const MAX_MESSAGE_LEN: usize = 1024;
+
+fn format_message(msg: &Message) -> String {
+    match (msg.as_text(), msg) {
+        (Ok(text), _) if text.len() <= MAX_MESSAGE_LEN => text.to_string(),
+        (Ok(text), _)  => format!("{}...", &text[..MAX_MESSAGE_LEN]),
+        (_, Message::Binary(bin)) if bin.len() <= MAX_MESSAGE_LEN => format!("Binary content: {:?}", bin),
+        (_, Message::Binary(bin)) => {
+            format!("Binary content: {:?}...", &bin[..MAX_MESSAGE_LEN])
+        }
+        _ => unreachable!("Only `Message::Binary` can fail `.as_text()`.")
+    }
+}
+
 pub fn on_get_request_msg(msg: Message, out: Sender, result: ThreadOut<String>) -> WsResult<()> {
     out.close(CloseCode::Normal)
         .unwrap_or_else(|_| warn!("Could not close Websocket normally"));
 
-    info!("Got get_request_msg {}", msg);
+    info!("Got get_request_msg {}", format_message(&msg));
     let result_str = serde_json::from_str(msg.as_text()?)
-        .map(|v: serde_json::Value| v["result"].to_string())
+        .map(|v: Value| v["result"].to_string())
         .map_err(|e| Box::new(RpcClientError::Serde(e)))?;
 
     result
@@ -154,8 +168,8 @@ pub fn on_get_request_msg(msg: Message, out: Sender, result: ThreadOut<String>) 
 }
 
 pub fn on_subscription_msg(msg: Message, out: Sender, result: ThreadOut<String>) -> WsResult<()> {
-    info!("got on_subscription_msg {}", msg);
-    let value: serde_json::Value =
+    info!("got on_subscription_msg {}", format_message(&msg));
+    let value: Value =
         serde_json::from_str(msg.as_text()?).map_err(|e| Box::new(RpcClientError::Serde(e)))?;
 
     match value["id"].as_str() {
@@ -198,8 +212,8 @@ pub fn on_extrinsic_msg_until_finalized(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::Future, _)) => {
@@ -219,8 +233,8 @@ pub fn on_extrinsic_msg_until_in_block(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::InBlock, val)) => end_process(out, result, val),
@@ -238,8 +252,8 @@ pub fn on_extrinsic_msg_until_broadcast(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::Broadcast, _)) => end_process(out, result, None),
@@ -257,8 +271,8 @@ pub fn on_extrinsic_msg_until_ready(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match parse_status(retstr) {
         Ok((XtStatus::Finalized, val)) => end_process(out, result, val),
         Ok((XtStatus::Ready, _)) => end_process(out, result, None),
@@ -276,8 +290,8 @@ pub fn on_extrinsic_msg_submit_only(
     out: Sender,
     result: ThreadOut<String>,
 ) -> WsResult<()> {
+    debug!("got msg {}", format_message(&msg));
     let retstr = msg.as_text().unwrap();
-    debug!("got msg {}", retstr);
     match result_from_json_response(retstr) {
         Ok(val) => end_process(out, result, Some(val)),
         Err(e) => {
@@ -301,7 +315,7 @@ fn end_process(out: Sender, result: ThreadOut<String>, value: Option<String>) ->
 }
 
 fn parse_status(msg: &str) -> RpcResult<(XtStatus, Option<String>)> {
-    let value: serde_json::Value = serde_json::from_str(msg)?;
+    let value: Value = serde_json::from_str(msg)?;
 
     if value["error"].as_object().is_some() {
         return Err(into_extrinsic_err(&value));
@@ -360,7 +374,7 @@ fn into_extrinsic_err(resp_with_err: &Value) -> RpcClientError {
 }
 
 fn result_from_json_response(resp: &str) -> RpcResult<String> {
-    let value: serde_json::Value = serde_json::from_str(resp)?;
+    let value: Value = serde_json::from_str(resp)?;
 
     let resp = value["result"]
         .as_str()
