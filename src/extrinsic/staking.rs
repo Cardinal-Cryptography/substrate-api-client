@@ -50,22 +50,23 @@ pub type StakingNominateFn = (CallIndex, Vec<GenericAddress>);
 pub type StakingChillFn = CallIndex;
 pub type StakingSetControllerFn = (CallIndex, GenericAddress);
 
-pub type StakingBondXt = UncheckedExtrinsicV4<StakingBondFn>;
-pub type StakingBondExtraXt = UncheckedExtrinsicV4<StakingBondExtraFn>;
-pub type StakingUnbondXt = UncheckedExtrinsicV4<StakingUnbondFn>;
-pub type StakingRebondXt = UncheckedExtrinsicV4<StakingRebondFn>;
-pub type StakingWithdrawUnbondedXt = UncheckedExtrinsicV4<StakingWithdrawUnbondedFn>;
-pub type StakingNominateXt = UncheckedExtrinsicV4<StakingNominateFn>;
-pub type StakingChillXt = UncheckedExtrinsicV4<StakingChillFn>;
-pub type StakingSetControllerXt = UncheckedExtrinsicV4<StakingSetControllerFn>;
+pub type StakingBondXt = UncheckedExtrinsicV4<StakingBondFn, SignedExtra>;
+pub type StakingBondExtraXt = UncheckedExtrinsicV4<StakingBondExtraFn, SignedExtra>;
+pub type StakingUnbondXt = UncheckedExtrinsicV4<StakingUnbondFn, SignedExtra>;
+pub type StakingRebondXt = UncheckedExtrinsicV4<StakingRebondFn, SignedExtra>;
+pub type StakingWithdrawUnbondedXt = UncheckedExtrinsicV4<StakingWithdrawUnbondedFn, SignedExtra>;
+pub type StakingNominateXt = UncheckedExtrinsicV4<StakingNominateFn, SignedExtra>;
+pub type StakingChillXt = UncheckedExtrinsicV4<StakingChillFn, SignedExtra>;
+pub type StakingSetControllerXt = UncheckedExtrinsicV4<StakingSetControllerFn, SignedExtra>;
 
 // https://polkadot.js.org/docs/substrate/extrinsics#staking
-impl<P, Client> Api<P, Client>
+impl<P, Client, Params> Api<P, Client, Params>
 where
     P: Pair,
     MultiSignature: From<P::Signature>,
     MultiSigner: From<P::Public>,
     Client: RpcClient,
+    Params: ExtrinsicParams
 {
     /// Bond `value` amount to `controller`
     pub fn staking_bond(
