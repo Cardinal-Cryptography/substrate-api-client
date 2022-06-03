@@ -19,7 +19,7 @@
 
 use crate::{Api, RpcClient};
 use ac_compose_macros::compose_extrinsic;
-use ac_primitives::{Balance, CallIndex, GenericAddress, UncheckedExtrinsicV4};
+use ac_primitives::{Balance, CallIndex, ExtrinsicParams, GenericAddress, UncheckedExtrinsicV4};
 use codec::Compact;
 use sp_core::Pair;
 use sp_runtime::{MultiSignature, MultiSigner};
@@ -66,7 +66,7 @@ where
     MultiSignature: From<P::Signature>,
     MultiSigner: From<P::Public>,
     Client: RpcClient,
-    Params: ExtrinsicParams
+    Params: ExtrinsicParams,
 {
     /// Bond `value` amount to `controller`
     pub fn staking_bond(
