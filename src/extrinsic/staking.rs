@@ -129,7 +129,7 @@ where
     }
 
     /// Stop nominating por validating. Effects take place in the next era
-    pub fn staking_chill(&self) -> StakingChillXt {
+    pub fn staking_chill(&self) -> StakingChillXt<Params::SignedExtra> {
         compose_extrinsic!(self, STAKING_MODULE, STAKING_CHILL)
     }
 
