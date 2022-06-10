@@ -23,7 +23,6 @@ use log::{debug, error, info, warn};
 use serde_json::Value;
 use sp_core::Pair;
 use sp_runtime::MultiSignature;
-use support::traits::Len;
 use ws::{CloseCode, Error, Handler, Handshake, Message, Result as WsResult, Sender};
 
 use crate::std::rpc::RpcClientError;
@@ -39,6 +38,8 @@ pub type OnMessageFn = fn(msg: Message, out: Sender, result: ThreadOut<String>) 
 
 type RpcResult<T> = Result<T, RpcClientError>;
 
+const MAX_MESSAGE_LEN: usize = 1024;
+
 pub struct RpcClient {
     pub out: Sender,
     pub request: String,
@@ -48,7 +49,12 @@ pub struct RpcClient {
 
 impl Handler for RpcClient {
     fn on_open(&mut self, _: Handshake) -> WsResult<()> {
-        info!("sending request: {}", self.request);
+        let message = match self.request.len() <= MAX_MESSAGE_LEN {
+            true => self.request.clone(),
+            false => format!("{}...", &self.request[..MAX_MESSAGE_LEN])
+        };
+
+        info!("sending request: {}", message);
         self.out.send(self.request.clone())?;
         Ok(())
     }
@@ -144,8 +150,6 @@ where
         }
     }
 }
-
-const MAX_MESSAGE_LEN: usize = 1024;
 
 fn format_message(msg: &Message) -> String {
     match msg.as_text() {
