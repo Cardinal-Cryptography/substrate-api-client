@@ -7,9 +7,9 @@ edition = "2021"
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ['derive'] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 
-sp-core = { version = "6.0.0", default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+sp-core = { version = "6.0.0", default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26-r2" }
+sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26-r2" }
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26-r2" }
 
 [features]
 default = ["std"]
